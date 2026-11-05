@@ -18,20 +18,9 @@ jobs:
         run: sudo apt update && sudo apt install -y golang nodejs npm git g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64
       - name: Download frida
         run: |
-          git clone --depth 1 --branch 17.25.2 https://github.com/frida/frida.git ffrida
+          git clone --depth 1 --branch 17.17.0 https://github.com/frida/frida.git ffrida
           cd ffrida/
           python3 tools/ensure-submodules.py frida-core
-      - name: Patch glib-networking (libproxy/gnutls/gnome_proxy have no wraps in tree)
-        run: |
-          cd ffrida/subprojects/frida-core
-          curl -fsSL https://github.com/frida-forks/glib-networking/archive/c8d811a906659f59eabc9f4dc3ad2ba22772bf0f.tar.gz -o /tmp/gn.tar.gz
-          mkdir -p subprojects/glib-networking
-          tar -xzf /tmp/gn.tar.gz -C subprojects/glib-networking --strip-components=1
-          sed -i "s/option('libproxy', type: 'feature', value: 'enabled'/option('libproxy', type: 'feature', value: 'disabled'/" subprojects/glib-networking/meson_options.txt
-          sed -i "s/option('gnutls', type: 'feature', value: 'enabled'/option('gnutls', type: 'feature', value: 'disabled'/" subprojects/glib-networking/meson_options.txt
-          sed -i "s/option('gnome_proxy', type: 'feature', value: 'enabled'/option('gnome_proxy', type: 'feature', value: 'disabled'/" subprojects/glib-networking/meson_options.txt
-          sed -i "s/option('openssl', type: 'feature', value: 'disabled'/option('openssl', type: 'feature', value: 'enabled'/" subprojects/glib-networking/meson_options.txt
-          sed -i "s/option('tests', type: 'boolean', value: true/option('tests', type: 'boolean', value: false/" subprojects/glib-networking/meson_options.txt
       - name: Build frida-core
         env:
           CC: x86_64-w64-mingw32-gcc
@@ -39,8 +28,11 @@ jobs:
         run: |
           cd ffrida/subprojects/frida-core
           ./configure --host=x86_64-w64-mingw32 --without-prebuilds=sdk:host --with-devkits=core
-          cp subprojects/glib-networking/tls/openssl/gioopenssl.vapi deps/toolchain-linux-x86_64/share/vala-0.58/vapi/
           make
+          # devkit 生成器未注入版本号(头文件宏恒 0,会让 frida-go 的
+          # FRIDA_CHECK_VERSION 选错分支),按所钉版本回填
+          sed -i 's/#define FRIDA_MAJOR_VERSION 0/#define FRIDA_MAJOR_VERSION 17/' build/src/devkit/frida-core.h
+          sed -i 's/#define FRIDA_MINOR_VERSION 0/#define FRIDA_MINOR_VERSION 17/' build/src/devkit/frida-core.h
           mkdir /tmp/frida-core-devkit
           cp ./build/src/devkit/* /tmp/frida-core-devkit/
       - name: Upload artifacts
