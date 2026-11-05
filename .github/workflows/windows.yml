@@ -18,7 +18,8 @@ jobs:
         run: sudo apt update && sudo apt install -y golang nodejs npm git g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64
       - name: Download frida
         run: |
-          git clone https://github.com/frida/frida.git ffrida && cd ffrida/
+          git clone --depth 1 --branch 17.25.2 https://github.com/frida/frida.git ffrida
+          cd ffrida/
           python3 tools/ensure-submodules.py frida-core
       - name: Build frida-core
         env:
@@ -26,8 +27,7 @@ jobs:
           CXX: x86_64-w64-mingw32-g++
         run: |
           cd ffrida/subprojects/frida-core
-          git remote set-url origin https://github.com/NSEcho/frida-core.git && git fetch origin main:main && git checkout main
-          ./configure --host=x86_64-w64-mingw32 --without-prebuilds=sdk:host --with-devkits=core 
+          ./configure --host=x86_64-w64-mingw32 --without-prebuilds=sdk:host --with-devkits=core
           make
           mkdir /tmp/frida-core-devkit
           cp ./build/src/devkit/* /tmp/frida-core-devkit/
@@ -75,4 +75,3 @@ jobs:
         run: |
           cd frida-go
           go build -o ll main.go && ./ll
-    
