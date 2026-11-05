@@ -21,13 +21,24 @@ jobs:
           git clone --depth 1 --branch 17.25.2 https://github.com/frida/frida.git ffrida
           cd ffrida/
           python3 tools/ensure-submodules.py frida-core
+      - name: Patch glib-networking (libproxy/gnutls/gnome_proxy have no wraps in tree)
+        run: |
+          cd ffrida/subprojects/frida-core
+          curl -fsSL https://github.com/frida-forks/glib-networking/archive/c8d811a906659f59eabc9f4dc3ad2ba22772bf0f.tar.gz -o /tmp/gn.tar.gz
+          mkdir -p subprojects/glib-networking
+          tar -xzf /tmp/gn.tar.gz -C subprojects/glib-networking --strip-components=1
+          sed -i "s/option('libproxy', type: 'feature', value: 'enabled'/option('libproxy', type: 'feature', value: 'disabled'/" subprojects/glib-networking/meson_options.txt
+          sed -i "s/option('gnutls', type: 'feature', value: 'enabled'/option('gnutls', type: 'feature', value: 'disabled'/" subprojects/glib-networking/meson_options.txt
+          sed -i "s/option('gnome_proxy', type: 'feature', value: 'enabled'/option('gnome_proxy', type: 'feature', value: 'disabled'/" subprojects/glib-networking/meson_options.txt
+          sed -i "s/option('openssl', type: 'feature', value: 'disabled'/option('openssl', type: 'feature', value: 'enabled'/" subprojects/glib-networking/meson_options.txt
+          sed -i "s/option('tests', type: 'boolean', value: true/option('tests', type: 'boolean', value: false/" subprojects/glib-networking/meson_options.txt
       - name: Build frida-core
         env:
           CC: x86_64-w64-mingw32-gcc
           CXX: x86_64-w64-mingw32-g++
         run: |
           cd ffrida/subprojects/frida-core
-          ./configure --host=x86_64-w64-mingw32 --without-prebuilds=sdk:host --with-devkits=core -Dglib-networking:libproxy=disabled -Dglib-networking:gnome_proxy=disabled -Dglib-networking:gnutls=disabled -Dglib-networking:openssl=enabled -Dglib-networking:tests=false
+          ./configure --host=x86_64-w64-mingw32 --without-prebuilds=sdk:host --with-devkits=core
           make
           mkdir /tmp/frida-core-devkit
           cp ./build/src/devkit/* /tmp/frida-core-devkit/
