@@ -39,6 +39,7 @@ jobs:
         run: |
           cd ffrida/subprojects/frida-core
           ./configure --host=x86_64-w64-mingw32 --without-prebuilds=sdk:host --with-devkits=core
+          cp subprojects/glib-networking/tls/openssl/gioopenssl.vapi deps/toolchain-linux-x86_64/share/vala-0.58/vapi/
           make
           mkdir /tmp/frida-core-devkit
           cp ./build/src/devkit/* /tmp/frida-core-devkit/
